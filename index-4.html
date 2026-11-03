@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reel Run AI</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#090914;color:#fff;font-family:Arial,sans-serif;line-height:1.5}
+header{display:flex;justify-content:space-between;align-items:center;padding:22px 7%;border-bottom:1px solid #29293c}
+.logo{font-size:27px;font-weight:bold;color:#b78aff}.logo span{color:#fff}
+button{font-family:inherit;cursor:pointer}
+.login{background:#8b5cf6;border:0;color:#fff;padding:11px 22px;border-radius:9px}
+:focus-visible{outline:3px solid #f0abfc;outline-offset:2px}
+.hero{text-align:center;padding:65px 15px 30px}.hero h1{font-size:42px;margin-bottom:15px}.hero h1 span{color:#b78aff}.hero p{color:#b5b5c5}
+.container{max-width:750px;margin:30px auto;padding:30px;background:#151525;border:1px solid #33334b;border-radius:18px}
+label{display:block;margin:20px 0 10px;font-weight:bold}
+textarea,select,input[type=file],input[type=text],input[type=email],input[type=password]{width:100%;padding:15px;border:1px solid #41415b;background:#0d0d1a;color:#fff;border-radius:10px;font-size:15px;font-family:inherit}
+textarea{height:130px;resize:vertical}.counter{text-align:right;font-size:12px;color:#999;margin-top:4px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.preview{display:none;margin-top:12px;position:relative;width:max-content;max-width:100%}.preview img{max-width:100%;max-height:180px;border-radius:10px;display:block}
+.preview button{position:absolute;top:6px;right:6px;background:#000b;color:#fff;border:0;width:28px;height:28px;border-radius:50%}
+.error{color:#fca5a5;font-size:14px;margin-top:8px;min-height:20px}
+.generate{width:100%;margin-top:20px;padding:17px;border:0;border-radius:10px;background:linear-gradient(90deg,#8b5cf6,#ec4899);color:#fff;font-size:18px;font-weight:bold}
+.generate:disabled{opacity:.55;cursor:not-allowed}
+.note{color:#999;text-align:center;margin-top:15px;font-size:12px}
+.result{display:none;margin-top:28px;padding-top:24px;border-top:1px solid #33334b}
+.backdrop{display:none;position:fixed;inset:0;background:#000b;align-items:center;justify-content:center;padding:16px;z-index:10}
+.backdrop.open{display:flex}.modal{width:100%;max-width:400px;background:#151525;border:1px solid #33334b;border-radius:16px;padding:26px}
+.modal h2{margin-bottom:4px}.tabs{display:flex;gap:8px;margin:14px 0}
+.tabs button{flex:1;padding:10px;border-radius:8px;border:1px solid #41415b;background:transparent;color:#fff}
+.tabs button[aria-selected=true]{background:#8b5cf6;border-color:#8b5cf6}
+.modal .actions{display:flex;gap:10px;margin-top:20px}.modal .actions button{flex:1;padding:12px;border-radius:9px;border:0;font-size:15px}
+.primary{background:#8b5cf6;color:#fff}.secondary{background:#29293c;color:#fff}
+#accountStatus{color:#c4b5fd;font-size:13px;margin-top:8px}
+footer{text-align:center;padding:35px;color:#8a8a9a}
+@media(max-width:600px){.hero h1{font-size:30px}.container{margin:20px 12px;padding:20px}.row{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">REEL <span>RUN AI</span> 🎬</div>
+  <button class="login" id="loginBtn" type="button">Login / Sign Up</button>
+</header>
+<main>
+<section class="hero">
+  <h1>Turn Your Imagination Into <span>Videos</span></h1>
+  <p>Create amazing AI videos using just a simple prompt.</p>
+</section>
+<div class="container">
+  <h2>✨ Create Your Video</h2>
+  <form id="videoForm">
+    <label for="prompt">Describe Your Video</label>
+    <textarea id="prompt" name="prompt" maxlength="1500" placeholder="Describe the video you want to create..." required></textarea>
+    <div class="counter"><span id="count">0</span>/1500</div>
+    <label for="image">Upload an Image (Required for Image-to-Video)</label>
+    <input type="file" id="image" name="image" accept="image/png,image/jpeg,image/webp">
+    <div class="preview" id="preview"><img id="previewImg" alt="Selected image preview"><button type="button" id="removeImg" aria-label="Remove image">✕</button></div>
+    <div class="row">
+      <div><label for="style">Video Style</label><select id="style" name="style"><option>Realistic</option><option>Cinematic</option><option>Anime</option><option>Cartoon</option><option>3D Animation</option></select></div>
+      <div><label>Generated Duration</label><input type="text" value="About 3.5 seconds (model limit)" readonly></div>
+    </div>
+    <label for="format">Video Format</label>
+    <select id="format" name="format"><option value="9:16">Portrait (9:16)</option><option value="16:9">Landscape (16:9)</option><option value="1:1">Square (1:1)</option></select>
+    <div class="error" id="error" role="alert"></div>
+    <button class="generate" id="generateBtn" type="submit">✨ Generate My Video</button>
+  </form>
+  <p class="note">Image-to-Video is connected to a public Hugging Face demo. It may be slow or temporarily unavailable because the demo uses shared community resources.</p>
+  <div class="result" id="result">
+    <h3>Your Generated Video</h3>
+    <video id="generatedVideo" controls playsinline style="width:100%;margin-top:12px;border-radius:12px;background:#000"></video>
+    <p class="note" id="resultNote">Generated by the community demo. The video link may expire.</p>
+  </div>
+  <p id="accountStatus" aria-live="polite"></p>
+</div>
+</main>
+<div class="backdrop" id="backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <h2 id="authTitle">Welcome to Reel Run</h2>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabLogin" aria-selected="true">Login</button>
+      <button type="button" role="tab" id="tabSignup" aria-selected="false">Sign Up</button>
+    </div>
+    <form id="authForm">
+      <div id="nameWrap" style="display:none"><label for="name">Name</label><input type="text" id="name" autocomplete="name"></div>
+      <label for="email">Email</label><input type="email" id="email" autocomplete="email" required>
+      <label for="password">Password</label><input type="password" id="password" autocomplete="current-password" minlength="8" required>
+      <div class="error" id="authError" role="alert"></div>
+      <div class="actions"><button type="button" class="secondary" id="closeModal">Cancel</button><button type="submit" class="primary" id="authSubmit">Login</button></div>
+    </form>
+  </div>
+</div>
+<footer>© 2026 Reel Run AI | Made with ❤️</footer>
+
+<!-- Load Supabase and connect this page to your project. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// Supabase project configuration (publishable/anon key only).
+const SUPABASE_URL = "https://vqzwexdcuzoaywrwxqbx.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_X5kM4aEBTMyaVE7LXGqGyg_Ic0sDbBS";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+<script>
+const $ = id => document.getElementById(id);
+let currentUser = null;
+let mode = "login";
+
+function openModal(){ $("backdrop").classList.add("open"); $("email").focus(); }
+function closeModal(){ $("backdrop").classList.remove("open"); $("authError").textContent=""; }
+function setMode(nextMode){
+  mode=nextMode;
+  const signup=mode==="signup";
+  $("tabLogin").setAttribute("aria-selected",String(!signup));
+  $("tabSignup").setAttribute("aria-selected",String(signup));
+  $("nameWrap").style.display=signup?"block":"none";
+  $("authSubmit").textContent=signup?"Create account":"Login";
+  $("password").autocomplete=signup?"new-password":"current-password";
+  $("authError").textContent="";
+}
+function renderSession(){
+  $("loginBtn").textContent=currentUser?"Logout":"Login / Sign Up";
+  $("accountStatus").textContent=currentUser?"Signed in as "+currentUser.email:"Please log in to use Reel Run.";
+}
+$("loginBtn").addEventListener("click",async()=>{
+  if(currentUser){
+    const {error}=await supabaseClient.auth.signOut();
+    if(error) $("error").textContent=error.message;
+  } else openModal();
+});
+$("tabLogin").addEventListener("click",()=>setMode("login"));
+$("tabSignup").addEventListener("click",()=>setMode("signup"));
+$("closeModal").addEventListener("click",closeModal);
+$("backdrop").addEventListener("click",e=>{if(e.target===$("backdrop"))closeModal();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+
+$("authForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  $("authError").textContent="";
+  const email=$("email").value.trim();
+  const password=$("password").value;
+  const name=$("name").value.trim();
+  if(password.length<8){$("authError").textContent="Password must be at least 8 characters.";return;}
+  $("authSubmit").disabled=true;
+  try{
+    if(mode==="signup"){
+      const {data,error}=await supabaseClient.auth.signUp({
+        email,password,options:{data:{full_name:name}}
+      });
+      if(error) throw error;
+      if(data.session){
+        $("authError").textContent="Account created and signed in.";
+      }else{
+        $("authError").textContent="Account created. Check your email to confirm your address, then log in.";
+      }
+    }else{
+      const {error}=await supabaseClient.auth.signInWithPassword({email,password});
+      if(error) throw error;
+      closeModal();
+      $("authForm").reset();
+    }
+  }catch(err){
+    $("authError").textContent=err.message||"Authentication failed.";
+  }finally{
+    $("authSubmit").disabled=false;
+  }
+});
+
+$("prompt").addEventListener("input",()=>{$("count").textContent=$("prompt").value.length;});
+const MAX_IMG_MB=5;
+let previewUrl=null;
+function clearImage(){
+  $("image").value="";
+  $("preview").style.display="none";
+  $("previewImg").removeAttribute("src");
+  if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}
+}
+$("image").addEventListener("change",()=>{
+  const file=$("image").files[0];
+  $("error").textContent="";
+  if(!file){clearImage();return;}
+  if(file.size>MAX_IMG_MB*1024*1024){$("error").textContent="Image must be under 5 MB.";clearImage();return;}
+  if(previewUrl)URL.revokeObjectURL(previewUrl);
+  previewUrl=URL.createObjectURL(file);
+  $("previewImg").src=previewUrl;
+  $("preview").style.display="block";
+});
+$("removeImg").addEventListener("click",clearImage);
+
+$("videoForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  $("error").textContent="";
+  $("result").style.display="none";
+  if(!currentUser){$("error").textContent="Please log in first.";openModal();return;}
+  const prompt=$("prompt").value.trim();
+  const imageFile=$("image").files[0];
+  if(prompt.length<10){$("error").textContent="Describe your video in at least 10 characters.";return;}
+  if(!imageFile){$("error").textContent="Please upload an image. This AI model currently supports Image-to-Video.";return;}
+  if(!/^image\/(png|jpeg|webp)$/.test(imageFile.type)){$("error").textContent="Please choose a PNG, JPG, or WEBP image.";return;}
+
+  const btn=$("generateBtn");
+  btn.disabled=true;
+  btn.textContent="⏳ Generating video... Please wait";
+  $("error").textContent="Connecting to the free community demo. It may take several minutes, and availability is not guaranteed.";
+  try{
+    // Load Gradio's browser client directly; no npm installation is needed.
+    const {Client}=await import("https://esm.sh/@gradio/client");
+    const client=await Client.connect("zerogpu-aoti/wan2-2-fp8da-aoti-faster");
+    const result=await client.predict("/generate_video",{
+      input_image:imageFile,
+      prompt:prompt,
+      steps:6,
+      negative_prompt:"overexposed, blurry, low quality, distorted, deformed, extra fingers, static image, subtitles, watermark",
+      duration_seconds:3.5,
+      guidance_scale:1,
+      guidance_scale_2:1,
+      seed:42,
+      randomize_seed:true
+    });
+    const output=result?.data?.[0];
+    let videoUrl="";
+    if(typeof output==="string") videoUrl=output;
+    else if(output && typeof output==="object"){
+      videoUrl=output.url || output.video?.url || output.path || output.video || "";
+    }
+    if(!videoUrl) throw new Error("The demo returned no video link. Please try again later.");
+    $("generatedVideo").src=videoUrl;
+    $("result").style.display="block";
+    $("error").textContent="";
+    $("resultNote").textContent="Video generated successfully. This community demo may provide temporary video links; save your video promptly.";
+    $("result").scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(err){
+    console.error(err);
+    $("error").textContent="Generation failed: "+(err?.message||"The free demo may be busy or unavailable. Please try again later.");
+  }finally{
+    btn.disabled=false;
+    btn.textContent="✨ Generate My Video";
+  }
+});
+
+(async function init(){
+  if(!window.supabase||typeof supabaseClient==="undefined"){
+    $("accountStatus").textContent="Supabase did not load. Check your internet connection and Supabase configuration.";
+    $("loginBtn").disabled=true;
+    return;
+  }
+  const {data:{session},error}=await supabaseClient.auth.getSession();
+  if(error){$("accountStatus").textContent=error.message;return;}
+  currentUser=session?.user||null;
+  renderSession();
+  supabaseClient.auth.onAuthStateChange((_event,newSession)=>{
+    currentUser=newSession?.user||null;
+    renderSession();
+  });
+})();
+</script>
+</body>
+</html>
